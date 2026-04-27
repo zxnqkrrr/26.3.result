@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3월 영업 실적 대시보드 · 홍지수</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F0F2F8; --surface: #FFFFFF; --surface-2: #F7F8FC; --border: #E4E7F0;
+      --text-primary: #111827; --text-secondary: #6B7280; --text-tertiary: #9CA3AF;
+      --blue: #2563EB; --blue-lt: #EFF6FF;
+      --green: #059669; --green-lt: #ECFDF5;
+      --amber: #D97706; --amber-lt: #FFFBEB;
+      --red: #DC2626; --red-lt: #FEF2F2;
+      --purple: #7C3AED; --purple-lt: #F5F3FF;
+      --teal: #0891B2; --teal-lt: #ECFEFF;
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text-primary); min-height: 100vh; }
+    .page-header { background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 20px 24px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 10; }
+    .page-header .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { width: 36px; height: 36px; background: var(--blue); border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
+    .brand-text h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+    .brand-text p { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+    .header-badge { font-size: 12px; font-weight: 600; color: var(--blue); background: var(--blue-lt);
+      padding: 5px 12px; border-radius: 20px; }
+    .main { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+    .section { margin-bottom: 28px; }
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+    .section-dot { width: 4px; height: 18px; border-radius: 2px; background: var(--blue); flex-shrink: 0; }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary);
+      text-transform: uppercase; letter-spacing: 0.06em; }
+    .section-sub { font-size: 12px; color: var(--text-tertiary); margin-left: auto; }
+
+    /* Metric */
+    .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .metric-card { background: var(--surface); border-radius: var(--radius-md); padding: 20px;
+      box-shadow: var(--shadow-sm); border: 1px solid var(--border); position: relative; overflow: hidden; }
+    .metric-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0; }
+    .metric-card:nth-child(1)::before { background: var(--blue); }
+    .metric-card:nth-child(2)::before { background: var(--green); }
+    .metric-card:nth-child(3)::before { background: var(--amber); }
+    .metric-card:nth-child(4)::before { background: var(--purple); }
+    .metric-icon { font-size: 20px; margin-bottom: 12px; display: block; }
+    .metric-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
+    .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; margin-bottom: 6px; }
+    .metric-sub { font-size: 11px; color: var(--text-tertiary); }
+    .metric-trend { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 6px;
+      border-radius: 4px; margin-left: 6px; }
+    .trend-up { color: var(--green); background: var(--green-lt); }
+    .trend-down { color: var(--red); background: var(--red-lt); }
+
+    /* Compare */
+    .compare-card { background: var(--surface); border-radius: var(--radius-md);
+      border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 20px 24px; }
+    .compare-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; }
+    .compare-item { padding: 4px 0; }
+    .compare-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; }
+    .compare-value { font-size: 18px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .compare-delta { font-size: 11px; font-weight: 700; }
+
+    /* Tier */
+    .tier-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .tier-card { background: var(--surface); border-radius: var(--radius-md); border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm); overflow: hidden; }
+    .tier-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .tier-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+    .badge-focus { background: var(--blue-lt); color: var(--blue); }
+    .badge-growth { background: var(--green-lt); color: var(--green); }
+    .badge-maintain { background: var(--amber-lt); color: var(--amber); }
+    .badge-watch { background: var(--red-lt); color: var(--red); }
+    .tier-subtitle { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .tier-sum { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+    .tier-body { padding: 0 18px; }
+    .client-row { display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .client-row:last-child { border-bottom: none; }
+    .client-info { flex: 1; min-width: 0; }
+    .client-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .client-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .tag { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
+    .tag-pexu { background: #EEEDFE; color: #3C3489; }
+    .tag-stobo { background: #E1F5EE; color: #0F6E56; }
+    .tag-chol { background: #FEF3C7; color: #92400E; }
+    .tag-device { background: #FAECE7; color: #993C1D; }
+    .tag-diabetic { background: #F1EFE8; color: #5F5E5A; }
+    .tag-new { background: #FCE7F3; color: #9D174D; }
+    .tag-well { background: #DBEAFE; color: #1E40AF; }
+    .client-amt { font-size: 14px; font-weight: 700; margin-left: 12px; white-space: nowrap; flex-shrink: 0; }
+
+    /* Chart */
+    .chart-card { background: var(--surface); border-radius: var(--radius-md); border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm); padding: 24px; }
+    .legend-wrap { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
+    .leg-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+    .chart-container { position: relative; width: 100%; }
+
+    /* Distribution */
+    .dist-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .dist-card { background: var(--surface); border-radius: var(--radius-md); border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm); overflow: hidden; }
+    .dist-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+    .dist-product-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    .dist-total { font-size: 11px; color: var(--text-secondary); }
+    .dist-trend { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+    .dist-body { padding: 4px 16px 12px; }
+    .dist-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0;
+      border-bottom: 1px solid var(--border); font-size: 12px; }
+    .dist-row:last-child { border-bottom: none; }
+    .dist-name { font-weight: 500; min-width: 90px; }
+    .dist-bar-wrap { flex: 1; margin: 0 10px; height: 6px; background: var(--surface-2);
+      border-radius: 3px; overflow: hidden; }
+    .dist-bar { height: 100%; border-radius: 3px; }
+    .dist-amt { font-weight: 700; white-space: nowrap; }
+
+    /* Strategy */
+    .strat-tier-label { display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+    .strat-priority { font-size: 11px; font-weight: 800; color: #fff; padding: 3px 9px;
+      border-radius: 20px; letter-spacing: 0.03em; }
+    .strat-tier-title { font-size: 13px; font-weight: 700; }
+    .strat-tier-desc { font-size: 12px; color: var(--text-secondary); }
+    .strat-tier-sum { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+    .strat-table { background: var(--surface); border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 var(--radius-md) var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .strat-head-row, .strat-row {
+      display: grid; grid-template-columns: 150px 80px 1fr;
+      padding: 8px 16px; align-items: start;
+    }
+    .strat-head-row { background: var(--surface-2); border-bottom: 1px solid var(--border);
+      font-size: 11px; font-weight: 600; color: var(--text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.05em; }
+    .strat-row { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .strat-row:last-child { border-bottom: none; }
+    .strat-row:hover { background: var(--surface-2); }
+    .col-name { font-size: 13px; padding-right: 10px; }
+    .col-name strong { font-weight: 700; }
+    .col-name .case-meta { display: block; font-size: 10.5px; color: var(--text-tertiary); margin-top: 4px; font-weight: 500; }
+    .col-amount { font-size: 13px; font-weight: 700; padding-right: 12px; }
+    .col-action { font-size: 12.5px; color: #374151; line-height: 1.7; }
+    .col-action em { font-style: normal; font-weight: 700; color: var(--text-primary); }
+    .col-action .action-tag { display: inline-block; font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 4px; margin: 0 3px 0 0; vertical-align: 1px;
+      background: var(--purple-lt); color: var(--purple); }
+    .col-action .action-tag.tool-rp { background: #DBEAFE; color: #1E40AF; }
+    .col-action .action-tag.tool-content { background: #FCE7F3; color: #9D174D; }
+    .col-action .action-tag.tool-policy { background: #DCFCE7; color: #166534; }
+    .col-action .action-tag.tool-device { background: #FFEDD5; color: #9A3412; }
+    .col-action .action-tag.tool-symp { background: #F3E8FF; color: #6B21A8; }
+    .col-action .action-tag.tool-research { background: #FEF3C7; color: #92400E; }
+    .col-action ul { margin: 4px 0 0 0; padding-left: 14px; }
+    .col-action li { margin-bottom: 3px; }
+    .amt-blue { color: var(--blue); }
+    .amt-green { color: var(--green); }
+    .amt-amber { color: var(--amber); }
+    .amt-red { color: var(--red); }
+
+    /* Toolkit */
+    .toolkit-card { background: var(--surface); border-radius: var(--radius-md);
+      border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 18px 22px; }
+    .toolkit-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 12px; }
+    .toolkit-item { padding: 12px; border-radius: var(--radius-sm); background: var(--surface-2);
+      border: 1px solid var(--border); }
+    .toolkit-name { font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+    .toolkit-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+
+    /* New product matrix */
+    .matrix-table { width: 100%; background: var(--surface); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm); border: 1px solid var(--border); border-collapse: separate; overflow: hidden; }
+    .matrix-table th, .matrix-table td { padding: 10px 14px; text-align: left;
+      font-size: 12.5px; border-bottom: 1px solid var(--border); }
+    .matrix-table th { background: var(--surface-2); font-size: 11px; color: var(--text-tertiary);
+      font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .matrix-table tr:last-child td { border-bottom: none; }
+    .matrix-table tr:hover td { background: var(--surface-2); }
+    .react-pos { background: #DCFCE7; color: #166534; }
+    .react-mid { background: #FEF3C7; color: #92400E; }
+    .react-neg { background: #FEE2E2; color: #991B1B; }
+    .react-tag { display: inline-block; font-size: 10.5px; font-weight: 700;
+      padding: 2px 8px; border-radius: 20px; }
+
+    /* Footer note */
+    .footer-note { background: #FFFBEB; border: 1px solid #FCD34D;
+      border-radius: var(--radius-md); padding: 14px 18px; margin-top: 20px;
+      font-size: 12px; color: #78350F; line-height: 1.6; }
+    .footer-note strong { color: #5C2E08; }
+
+    @media (max-width: 1000px) {
+      .metric-grid { grid-template-columns: repeat(2, 1fr); }
+      .compare-grid { grid-template-columns: repeat(2, 1fr); }
+      .dist-grid { grid-template-columns: 1fr; }
+      .toolkit-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 700px) {
+      .page-header { padding: 14px 16px; }
+      .main { padding: 20px 14px 48px; }
+      .metric-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .compare-grid { grid-template-columns: repeat(2, 1fr); }
+      .tier-grid { grid-template-columns: 1fr; }
+      .strat-head-row { display: none; }
+      .strat-row { grid-template-columns: 1fr; gap: 4px; }
+      .col-amount { font-size: 12px; }
+      .strat-tier-desc { display: none; }
+      .metric-value { font-size: 22px; }
+      .header-badge { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="brand">
+    <div class="brand-icon">📊</div>
+    <div class="brand-text">
+      <h1>3월 영업 실적 대시보드</h1>
+      <p>대웅제약 ETC · 서부1사무소 홍지수 · 2026년 3월</p>
+    </div>
+  </div>
+  <span class="header-badge">3월 월간 리포트 · 1Q 마감</span>
+</header>
+
+<main class="main">
+
+  <!-- 1. 핵심 지표 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot"></span>
+      <span class="section-title">핵심 지표</span>
+      <span class="section-sub">2월 1.19억 → 3월 1.56억 · 1Q S등급(+14.1%) 도달 라인</span>
+    </div>
+    <div class="metric-grid">
+      <div class="metric-card">
+        <span class="metric-icon">💰</span>
+        <div class="metric-label">3월 총 실적</div>
+        <div class="metric-value">1.56억<span class="metric-trend trend-up">+31.5%</span></div>
+        <div class="metric-sub">156,302,868원 · 2월 대비 +3,741만</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">🏥</span>
+        <div class="metric-label">처방 거래처 수</div>
+        <div class="metric-value">35개<span class="metric-trend trend-up">+3</span></div>
+        <div class="metric-sub">신규 김정재탑·홍사민안과·열린성모</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">💊</span>
+        <div class="metric-label">처방 품목 수</div>
+        <div class="metric-value">106개<span class="metric-trend trend-up">+5</span></div>
+        <div class="metric-sub">기준품명 기준</div>
+      </div>
+      <div class="metric-card">
+        <span class="metric-icon">⚠️</span>
+        <div class="metric-label">세란 의존도</div>
+        <div class="metric-value">25.3%<span class="metric-trend trend-down">−3.0%p</span></div>
+        <div class="metric-sub">분산 구조 가속화 진행 중</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 카테고리별 비교 (2월 vs 3월) -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:var(--teal);"></span>
+      <span class="section-title">집중 품목 카테고리 · 2월 vs 3월</span>
+      <span class="section-sub">단위: 만원</span>
+    </div>
+    <div class="compare-card">
+      <div class="compare-grid">
+        <div class="compare-item">
+          <div class="compare-label">💊 펙수클루군</div>
+          <div class="compare-value">1,115<span style="color:#9CA3AF;font-size:12px;font-weight:500;"> 만</span></div>
+          <div class="compare-delta" style="color:var(--red);">2월 1,218 → −8.5% ⚠️</div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-label">💉 스토보클로</div>
+          <div class="compare-value">739<span style="color:#9CA3AF;font-size:12px;font-weight:500;"> 만</span></div>
+          <div class="compare-delta" style="color:var(--green);">2월 455 → +62.4% 🚀</div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-label">🫀 스타틴/고지혈</div>
+          <div class="compare-value">3,578<span style="color:#9CA3AF;font-size:12px;font-weight:500;"> 만</span></div>
+          <div class="compare-delta" style="color:var(--green);">2월 2,986 → +19.8% ↑</div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-label">🔬 의료기기·원내</div>
+          <div class="compare-value">2,345<span style="color:#9CA3AF;font-size:12px;font-weight:500;"> 만</span></div>
+          <div class="compare-delta" style="color:var(--green);">김정재탑 신규 랜딩 영향</div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-label">🏥 원내 비중</div>
+          <div class="compare-value">18.1%<span style="color:#9CA3AF;font-size:12px;font-weight:500;"> </span></div>
+          <div class="compare-delta" style="color:var(--green);">원내 2,822만 · 1Q MBO 진척 양호</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 거래처 분류 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:var(--green);"></span>
+      <span class="section-title">거래처 분류 (P1~P4)</span>
+      <span class="section-sub">총 35처 · 노션 기준 "집중 〉 기존=신규 〉 통계회수처"</span>
+    </div>
+    <div class="tier-grid">
+
+      <!-- P1 집중처 -->
+      <div class="tier-card">
+        <div class="tier-head">
+          <span class="tier-badge badge-focus">P1 집중처</span>
+          <span class="tier-subtitle">매출 상위 · 다품목 · 주 2~3회 방문</span>
+          <span class="tier-sum">합 8,228만 · 52.6%</span>
+        </div>
+        <div class="tier-body">
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">세란내과의원</div>
+              <div class="client-tags"><span class="tag tag-chol">고지혈 1,938</span><span class="tag tag-pexu">펙수 174</span><span class="tag tag-stobo">스토보 139</span></div>
+            </div>
+            <div class="client-amt">3,962만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">김정재탑내과 <span class="tag tag-new" style="margin-left:4px;">3월 신규</span></div>
+              <div class="client-tags"><span class="tag tag-device">의료기기 1,670</span><span class="tag tag-pexu">펙수 21</span></div>
+            </div>
+            <div class="client-amt">1,694만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">연세든든내과</div>
+              <div class="client-tags"><span class="tag tag-stobo">스토보 241</span><span class="tag tag-device">모비케어 305</span><span class="tag tag-pexu">펙수 126</span></div>
+            </div>
+            <div class="client-amt">1,495만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">박기호내과의원</div>
+              <div class="client-tags"><span class="tag tag-chol">고지혈 374</span><span class="tag tag-stobo">스토보 87</span><span class="tag tag-pexu">펙수 0 ⚠</span></div>
+            </div>
+            <div class="client-amt">963만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">서울강민신경과</div>
+              <div class="client-tags"><span class="tag tag-pexu">펙수 303 (1위)</span><span class="tag tag-device">리브레 153</span></div>
+            </div>
+            <div class="client-amt">913만</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P2 성장가능처 -->
+      <div class="tier-card">
+        <div class="tier-head">
+          <span class="tier-badge badge-growth">P2 성장가능처</span>
+          <span class="tier-subtitle">케파 대비 저실적 · 처방 확대 여지 큼</span>
+          <span class="tier-sum">합 3,170만 · 20.3%</span>
+        </div>
+        <div class="tier-body">
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">서울진내과</div>
+              <div class="client-tags"><span class="tag tag-diabetic">당고 467</span><span class="tag tag-chol">리토바젯 入</span><span class="tag tag-well">웰체크</span></div>
+            </div>
+            <div class="client-amt">753만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">류마내과의원</div>
+              <div class="client-tags"><span class="tag tag-diabetic">세비카 508</span><span class="tag tag-pexu">펙수 62 ↑</span><span class="tag tag-stobo">스토보 0</span></div>
+            </div>
+            <div class="client-amt">648만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">메디휴제일내과</div>
+              <div class="client-tags"><span class="tag tag-diabetic">당고 342</span><span class="tag tag-chol">리토바젯 92</span><span class="tag tag-pexu">펙수 0 ⚠</span></div>
+            </div>
+            <div class="client-amt">634만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">서울하내과의원</div>
+              <div class="client-tags"><span class="tag tag-chol">크레스토 149</span><span class="tag tag-pexu">펙수 0 ⚠</span></div>
+            </div>
+            <div class="client-amt">581만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">삼성바른내과</div>
+              <div class="client-tags"><span class="tag tag-pexu">펙수 81</span><span class="tag tag-chol">바로에젯 연구</span></div>
+            </div>
+            <div class="client-amt">555만</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P3 유지관리처 -->
+      <div class="tier-card">
+        <div class="tier-head">
+          <span class="tier-badge badge-maintain">P3 유지관리처</span>
+          <span class="tier-subtitle">안정적 · 이탈 방어 + 소폭 확대</span>
+          <span class="tier-sum">합 2,310만 · 14.8%</span>
+        </div>
+        <div class="tier-body">
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">정내과의원</div>
+              <div class="client-tags"><span class="tag tag-chol">크레스토 107</span><span class="tag tag-pexu">펙수 28</span></div>
+            </div>
+            <div class="client-amt">469만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">삼성편한내과</div>
+              <div class="client-tags"><span class="tag tag-stobo">스토보 70</span><span class="tag tag-pexu">펙수 0 ⚠</span></div>
+            </div>
+            <div class="client-amt">362만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">정기수내과</div>
+              <div class="client-tags"><span class="tag tag-diabetic">제미 279</span><span class="tag tag-pexu">펙수 0 ⚠</span></div>
+            </div>
+            <div class="client-amt">338만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">푸른정형외과</div>
+              <div class="client-tags"><span class="tag tag-stobo">스토보 139</span><span class="tag tag-chol">크레젯 93</span></div>
+            </div>
+            <div class="client-amt">336만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">연세정성내과</div>
+              <div class="client-tags"><span class="tag tag-pexu">펙수 36</span><span class="tag tag-device">모비케어 21</span></div>
+            </div>
+            <div class="client-amt">294만</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P4 요주의/저실적 -->
+      <div class="tier-card">
+        <div class="tier-head">
+          <span class="tier-badge badge-watch">P4 신규침투 / 요주의</span>
+          <span class="tier-subtitle">진입 확대 or 방문 주기 조정</span>
+          <span class="tier-sum">합 1,927만 · 12.3%</span>
+        </div>
+        <div class="tier-body">
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">강서척정형외과</div>
+              <div class="client-tags"><span class="tag tag-stobo">스토보 56</span><span class="tag tag-pexu">펙수10mg 入</span></div>
+            </div>
+            <div class="client-amt">147만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">서울안심내과</div>
+              <div class="client-tags"><span class="tag tag-device">모비케어·카트</span></div>
+            </div>
+            <div class="client-amt">141만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">열린성모이비인후과</div>
+              <div class="client-tags"><span class="tag tag-pexu">펙수10mg 105</span></div>
+            </div>
+            <div class="client-amt">105만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">서울박내과</div>
+              <div class="client-tags"><span class="tag tag-chol">바로에젯 세팅</span><span class="tag tag-pexu">펙수 0 ⚠</span></div>
+            </div>
+            <div class="client-amt">53만</div>
+          </div>
+          <div class="client-row">
+            <div class="client-info">
+              <div class="client-name">복복한이비인후과 / 이지정신건강의학과 / 고려정형외과</div>
+              <div class="client-tags"><span class="tag tag-pexu">펙수 단품 처방</span></div>
+            </div>
+            <div class="client-amt">~62만</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4. 품목 TOP 15 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:var(--amber);"></span>
+      <span class="section-title">3월 품목 TOP 15</span>
+      <span class="section-sub">기준품명 · 50% 반영 후 최종 실적</span>
+    </div>
+    <div class="chart-card">
+      <div class="legend-wrap">
+        <div class="leg-item"><span class="leg-dot" style="background:#378ADD;"></span>고지혈증/스타틴</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#1D9E75;"></span>P-CAB (펙수클루)</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#D85A30;"></span>골다공증 (스토보)</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#7F77DD;"></span>당뇨 / 고혈압</div>
+        <div class="leg-item"><span class="leg-dot" style="background:#BA7517;"></span>의료기기 / 기타</div>
+      </div>
+      <div class="chart-container">
+        <canvas id="productChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 집중 품목 분포 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:#7F77DD;"></span>
+      <span class="section-title">집중 품목 처방처 분포</span>
+      <span class="section-sub">상위 5처 · 만원 단위</span>
+    </div>
+    <div class="dist-grid">
+
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="dist-product-name">💊 펙수클루군 <span class="dist-trend trend-down">−8.5%</span></div>
+          <div class="dist-total">합계 1,115만 · 19처 처방 (2월 1,218만)</div>
+        </div>
+        <div class="dist-body" id="pexu-dist"></div>
+      </div>
+
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="dist-product-name">💉 스토보클로 <span class="dist-trend trend-up">+62.4%</span></div>
+          <div class="dist-total">합계 739만 · 7처 처방 (2월 455만)</div>
+        </div>
+        <div class="dist-body" id="stobo-dist"></div>
+      </div>
+
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="dist-product-name">🫀 스타틴/고지혈 <span class="dist-trend trend-up">+19.8%</span></div>
+          <div class="dist-total">합계 3,578만 · 22처 처방 (2월 2,986만)</div>
+        </div>
+        <div class="dist-body" id="chol-dist"></div>
+      </div>
+
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="dist-product-name">🏥 원내 품목 <span class="dist-trend trend-up">+93%</span></div>
+          <div class="dist-total">합계 2,822만 · 13처 처방</div>
+        </div>
+        <div class="dist-body" id="in-dist"></div>
+      </div>
+
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="dist-product-name">🔬 의료기기·구독</div>
+          <div class="dist-total">합계 2,345만 · 9처 처방</div>
+        </div>
+        <div class="dist-body" id="device-dist"></div>
+      </div>
+
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="dist-product-name">📋 웰체크 활성처 (노션)</div>
+          <div class="dist-total">총 1,007명 가입 · 활성 8처</div>
+        </div>
+        <div class="dist-body" id="well-dist"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 6. 거래처 우선순위 액션 플랜 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:#7C3AED;"></span>
+      <span class="section-title">거래처 우선순위 · 4월 액션 플랜</span>
+      <span class="section-sub">노션 RP 설계 → 처방 약속 → 확인 사이클</span>
+    </div>
+
+    <!-- P1 집중처 -->
+    <div style="margin-bottom:14px;">
+      <div class="strat-tier-label" style="background:#EFF6FF;border-left:4px solid #2563EB;">
+        <span class="strat-priority" style="background:#2563EB;">P1</span>
+        <span class="strat-tier-title">집중처 액션 — 분산 구조 가속 + 신제품 진입</span>
+        <span class="strat-tier-sum">5처 · 8,228만</span>
+      </div>
+      <div class="strat-table">
+        <div class="strat-head-row">
+          <span class="col-name">거래처</span>
+          <span class="col-amount">3월</span>
+          <span class="col-action">4월 액션 플랜</span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>세란내과의원</strong>
+            <span class="case-meta">고지혈 1,938만 · 의존도 25.3%</span></span>
+          <span class="col-amount amt-blue">3,962만</span>
+          <span class="col-action">
+            <span class="action-tag tool-symp">심포지엄</span><span class="action-tag tool-research">자문</span><strong>4/11 바로에젯 심포지엄</strong>으로 박원장님 자문 완료 → <em>바로에젯 300만 처방 약속 확인 방문</em>.
+            <ul>
+              <li>강원장님 실리스칸 자문 결과 확인 — QD 장점 공감 멘트 재각인</li>
+              <li>강서연세약국 통계 거부 이력 감안, <em>강서디케이/세란문전 등 분산 약국 통계 회수 루틴 가동</em></li>
+              <li>웰체크 가입 68명 · 활성 63명 ✅ 유지 — 모비케어 추가 사입 추가 제안</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>김정재탑내과</strong>
+            <span class="case-meta">신규 개원처 · 의료기기 패키지 1,670만 랜딩</span></span>
+          <span class="col-amount amt-blue">1,694만</span>
+          <span class="col-action">
+            <span class="action-tag tool-device">의료기기</span><span class="action-tag tool-content">콘텐츠</span>1Q 신규 개원처 컨설팅 모델 정립 케이스. <em>옵티나 처방 세팅 + 카트BP 수가 청구 안내가 4월 핵심</em>.
+            <ul>
+              <li>옵티나 PM 후속 동도 → 안저검사 운영 흐름 매뉴얼화 → 실제 처방 발생 확인</li>
+              <li>4월 바로에젯 심포지엄 통해 스타틴 약제 추가 제안 (현재 펙수 21만만 처방, 케파 vs 실적 갭 큼)</li>
+              <li>웰체크 일만사 50명 목표 → 교육간호사 동도 통해 가입 루틴 정착</li>
+              <li>홈페이지·하이닥 등 AI 콘텐츠 제공 지속 → 고객단계 4단계 진입 목표</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>연세든든내과</strong>
+            <span class="case-meta">스토보 241만 + 모비케어 305만 + 펙수 126만</span></span>
+          <span class="col-amount amt-blue">1,495만</span>
+          <span class="col-action">
+            <span class="action-tag tool-content">콘텐츠</span><span class="action-tag tool-research">자문</span>유튜브 운영 지속·고객단계 4단계 유지. <em>펙수클루 40mg / 바로에젯 MBO 3,000만 약속 — 처방 데이터 확인 우선</em>.
+            <ul>
+              <li>리바로 2mg 부작용 / 1mg 미조절 케이스 발생 시 <em>바로에젯 스위칭 트리거</em> 가동</li>
+              <li>웰체크 가입 221명 vs 활성 5명 🔺 — 실장님과 4월 활성 50명 목표 약속 잡기</li>
+              <li>숏폼 콘텐츠 방향성 개선 → 구독자 증대 명분으로 펙수클루 처방 증대 요청</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>박기호내과의원</strong>
+            <span class="case-meta">스타틴 374만 + 스토보 87만 · 펙수 0 ⚠</span></span>
+          <span class="col-amount amt-blue">963만</span>
+          <span class="col-action">
+            <span class="action-tag tool-rp">RP설계</span><span class="action-tag">펙수진입</span><em>최우선 과제: 펙수클루 신규 진입</em>. 고지혈·당고 처방 활발하나 P-CAB 0 — 1Q 가장 큰 미수확 영역.
+            <ul>
+              <li>크레스토 5/10mg 합 362만 → <em>크레젯 업셀</em> 동시 제안</li>
+              <li>4/2 실리스칸 자문 결과 확인 (미확인 상태)</li>
+              <li>스토보 866K → 1,000만대 진입 목표, 프롤리아 사용처 사전 파악</li>
+              <li>방문 RP: GERD 동반 환자 사례 중심 → 펙수 10/40 동시 제안</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>서울강민신경과</strong>
+            <span class="case-meta">펙수 303만 (전체 1위) · 베아셉트 367만</span></span>
+          <span class="col-amount amt-blue">913만</span>
+          <span class="col-action">
+            <span class="action-tag">리토바젯</span><span class="action-tag tool-research">자문</span><em>리토바젯 처방 약속 → 4월 실적 확인 + 감사 인사</em>.
+            <ul>
+              <li>김원장께 실리스칸 전달 완료 → 박원장님 자문 결과 확인 (미확인)</li>
+              <li>펙수 처방 1위 유지 → 신경과 수면제 부작용 GERD 명분 추가 각인</li>
+              <li>리브레 1,527K 안정 — 신경과 환자 중 당뇨 동반자 추가 모집 협의</li>
+            </ul>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- P2 성장가능처 -->
+    <div style="margin-bottom:14px;">
+      <div class="strat-tier-label" style="background:#ECFDF5;border-left:4px solid #059669;">
+        <span class="strat-priority" style="background:#059669;">P2</span>
+        <span class="strat-tier-title">성장가능처 — 신제품 침투 + 케파 발굴</span>
+        <span class="strat-tier-sum">5처 · 3,170만</span>
+      </div>
+      <div class="strat-table">
+        <div class="strat-head-row">
+          <span class="col-name">거래처</span>
+          <span class="col-amount">3월</span>
+          <span class="col-action">4월 액션 플랜</span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>서울진내과</strong>
+            <span class="case-meta">당고 467 · 리토바젯 入 · 13년 고당 최우수</span></span>
+          <span class="col-amount amt-green">753만</span>
+          <span class="col-action">
+            <span class="action-tag tool-policy">국가시책</span><span class="action-tag tool-device">옵티나</span><em>일만사 환자 100명 → 500명 목표</em>(웰체크 MBO 1,600). 교육간호사 동도 통해 분담 구조 정착.
+            <ul>
+              <li>옵티나/위스키 사입 — '홍사민연세안과' 자문 활용 (인접 안과 안저검사 연계 경험 활용)</li>
+              <li>실리스칸 자문 완료 → 처방 500만 약속 → 4월 처방 확인</li>
+              <li>펙수클루 40mg 경쟁품 처방 중 → 일만사 큐레이션 명분으로 원내 환경 개선 제안</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>류마내과의원</strong>
+            <span class="case-meta">세비카 508만 · 펙수 62만 (0→62 진입)</span></span>
+          <span class="col-amount amt-green">648만</span>
+          <span class="col-action">
+            <span class="action-tag tool-symp">DTM</span><span class="action-tag tool-device">카트BP</span><em>펙수 전 용량 코딩 완료 — 환자 피드백 좋은 케이스 반복 각인 → 1,000만 진입</em>.
+            <ul>
+              <li>카트BP 사입 약속 — 납품 일정 확인 + 교육 세팅</li>
+              <li>스토보 0 → 프롤리아 사용 확인됨 → 스위칭 명분 마련 (검체 검사 수익 시뮬레이션 연동)</li>
+              <li>세비카 케파 3,000 — 높은 고객단계 활용해 NSAIDs 동반 GERD 처방 명분 추가</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>메디휴제일내과</strong>
+            <span class="case-meta">제미·리토바젯 활발 · 펙수 0 ⚠ · 일만사 추정</span></span>
+          <span class="col-amount amt-green">634만</span>
+          <span class="col-action">
+            <span class="action-tag tool-policy">웰체크</span><span class="action-tag">스위칭</span><em>웰체크 마지막 연동 25.11 → 사실상 중단 → 4월 리셋 필요</em>.
+            <ul>
+              <li>프롤리아 월 15+ 확인 → 스토보 전량 스위칭 시도 (홈페이지·검색광고 큐레이션 제공 명분)</li>
+              <li>방문디테일 점심식사 → 스토보 디테일 + 더샵 사입 유도</li>
+              <li>리토바젯 92만 → 바로에젯 전환 제안 (반응은 부정 → 데이터 보강 필요)</li>
+              <li>비일만사 MAU 1 → 20명 목표 (고당 수첩 기능 안내)</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>서울하내과의원</strong>
+            <span class="case-meta">크레스토 149만 · 펙수 0 ⚠</span></span>
+          <span class="col-amount amt-green">581만</span>
+          <span class="col-action">
+            <span class="action-tag tool-rp">RP설계</span><span class="action-tag">펙수진입</span><em>2월부터 변동 없는 펙수 0 — GERD/위염 환자 사례 임상 데이터 집중 제공</em>.
+            <ul>
+              <li>크레스토 → 크레젯 업셀 또는 바로에젯 전환 제안</li>
+              <li>가스모틴+엘도스 동시 처방 패턴 → 펙수클루 10mg 연계 처방 명분 구성</li>
+              <li>방문 빈도 주 1 → 주 2회 상향, 노션 RP 사전 설계</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>삼성바른내과</strong>
+            <span class="case-meta">펙수 81 · 바로에젯 연구 진행 · 일만사 미참여</span></span>
+          <span class="col-amount amt-green">555만</span>
+          <span class="col-action">
+            <span class="action-tag tool-research">연구</span><span class="action-tag tool-device">옵티나</span><em>바로에젯 연구비 연동 3,000만 약속 — 4월 연구 데이터 입력 독려, 처방 실적 확인</em>.
+            <ul>
+              <li>옵티나·위스키 사입 유도 (방호건 CM 피드백 완료) → 안저검사 디테일 리마인드</li>
+              <li>웰체크 약속 3,100만 vs 확인 0 — 비활성처 1순위 ⚠️ 전담 간호사 배정 + 특정 요일 상주 가입 지원 구조 제안</li>
+              <li>스토보 50% 스위칭 — 종근당/한미와 관계 좋아 단계별 진입 (홈페이지·힐리언스 숙박권 활용)</li>
+            </ul>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- P3 유지관리처 -->
+    <div style="margin-bottom:14px;">
+      <div class="strat-tier-label" style="background:#FFFBEB;border-left:4px solid #D97706;">
+        <span class="strat-priority" style="background:#D97706;">P3</span>
+        <span class="strat-tier-title">유지관리처 — 이탈 방어 + 단품 추가 제안</span>
+        <span class="strat-tier-sum">5처 · 1,800만</span>
+      </div>
+      <div class="strat-table">
+        <div class="strat-head-row">
+          <span class="col-name">거래처</span>
+          <span class="col-amount">3월</span>
+          <span class="col-action">4월 액션 플랜</span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>정내과의원</strong>
+            <span class="case-meta">크레스토·세비카·우루사 다품목</span></span>
+          <span class="col-amount amt-amber">469만</span>
+          <span class="col-action">
+            <span class="action-tag tool-research">자문</span>2원장 바로에젯 자문 완료 (긍정) → 200만 약속 → <em>처방 확인</em>. 1원장은 실리스칸 부정.
+            <ul>
+              <li>2원장 채널로 유지, 1원장 바꿀 생각 없음 → 추가 제안 우선순위 낮춤</li>
+              <li>릭시아나 60mg 50만 안정 — 유지 관리</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>삼성편한내과</strong>
+            <span class="case-meta">스토보 70만 · 펙수 0 ⚠</span></span>
+          <span class="col-amount amt-amber">362만</span>
+          <span class="col-action">
+            <span class="action-tag">펙수진입</span><span class="action-tag">최고유통</span>스토보 사용 중인데 펙수 미처방 — 채원장 실리스칸 자문 완료(고려).
+            <ul>
+              <li>바로에젯 부정 반응 → <em>최고유통 전환 검토</em></li>
+              <li>스토보 → 펙수 위장보호 패키지 명분 강화 (소화기 동반 환자 케이스)</li>
+              <li>웰체크 미참여 + 비일만사 MAU 1명 → 일만사 가입 진입 시도</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>정기수내과</strong>
+            <span class="case-meta">제미메트 279만 · 펙수 0 ⚠ · 바로에젯 부정</span></span>
+          <span class="col-amount amt-amber">338만</span>
+          <span class="col-action">
+            <span class="action-tag">단품처</span>당뇨 단품 처방 패턴. 바로에젯 부정, 실리스칸 자문 완료(고려).
+            <ul>
+              <li>실리스칸 처방 가능성 탐색 (단품처 대상 단품 추가 진입 전략)</li>
+              <li>크레젯 또는 바로에젯 재방문 시 새 데이터 보강</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>푸른정형외과</strong>
+            <span class="case-meta">스토보 139만 · 크레젯·펙수10mg 진입</span></span>
+          <span class="col-amount amt-amber">336만</span>
+          <span class="col-action">
+            <span class="action-tag">DW약제</span>전 소화기용제 DW 약제 세팅 약속(3월) → <em>4월 처방 확인 우선</em>.
+            <ul>
+              <li>스토보 1,388K 안정 — 정형외과 추가 처방 케이스 발굴</li>
+              <li>크레젯 330K → 정형외과 환자 중 고지혈 동반자 추가 진입</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>연세정성내과</strong>
+            <span class="case-meta">펙수 36 · 모비케어 21 · 세벨머 24</span></span>
+          <span class="col-amount amt-amber">294만</span>
+          <span class="col-action">
+            <span class="action-tag tool-policy">웰체크</span>웰체크 미참여이나 비일만사 MAU 49명 → <em>일만사 가입 시 가장 큰 잠재처</em>.
+            <ul>
+              <li>모비케어 추가 사입 → 카트BP 자연스럽게 연계</li>
+              <li>펙수클루 처방 가능성 탐색 — 소화기 환자 사례 노출</li>
+            </ul>
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- P4 신규침투/요주의 -->
+    <div>
+      <div class="strat-tier-label" style="background:#FEF2F2;border-left:4px solid #DC2626;">
+        <span class="strat-priority" style="background:#DC2626;">P4</span>
+        <span class="strat-tier-title">신규 침투 / 요주의 — 진입 가속 or 방문 효율 조정</span>
+        <span class="strat-tier-sum">8처 · 555만 (저변)</span>
+      </div>
+      <div class="strat-table">
+        <div class="strat-head-row">
+          <span class="col-name">거래처</span>
+          <span class="col-amount">3월</span>
+          <span class="col-action">4월 액션 플랜</span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>강서척정형외과</strong>
+            <span class="case-meta">스토보 56 · 펙수10 入(2월 31만→3월 147만)</span></span>
+          <span class="col-amount amt-red">147만</span>
+          <span class="col-action">
+            <span class="action-tag">스텝업</span><em>펙수 10mg → 20mg 단계적 용량 업</em> 시도. 리포타손 884K 안정.
+            <ul>
+              <li>NSAIDs 처방+위장보호 패키지 처방 명분 강화</li>
+              <li>3월 +374% 성장처 — 적극 방문 주기 유지</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>서울안심내과</strong>
+            <span class="case-meta">모비케어·카트BP 추가 진행</span></span>
+          <span class="col-amount amt-red">141만</span>
+          <span class="col-action">
+            <span class="action-tag tool-device">의료기기</span>의료기기 추가 사입 진행 — <em>구독형 수가 시뮬레이션 자료 재공유</em>로 정착.
+            <ul>
+              <li>펙수클루 40mg 106K → 처방 안정화 후 10mg 추가 제안</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>열린성모이비인후과</strong>
+            <span class="case-meta">펙수 10mg 910K (LPR 명분 적중)</span></span>
+          <span class="col-amount amt-red">105만</span>
+          <span class="col-action">
+            <span class="action-tag tool-symp">심포지엄</span><em>심포지엄 피드백으로 300→1,200 처방 증대 사례 — MKT 툴 적극 활용 지속</em>.
+            <ul>
+              <li>펙수 10mg → 40mg 추가 제안 (LPR 만성 케이스)</li>
+              <li>이비인후과 역류성 인후두염 임상 데이터 추가 제공</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>서울박내과</strong>
+            <span class="case-meta">바로에젯 세팅 완료 · 펙수 0 ⚠</span></span>
+          <span class="col-amount amt-red">53만</span>
+          <span class="col-action">
+            <span class="action-tag">초진세팅</span>바로에젯 초진 한정 100만 약속 → <em>처방 확인 + 재방문 각인</em>.
+            <ul>
+              <li>실리스칸 부정 (급여기준 환자 드묾) → 추가 제안 보류</li>
+              <li>웰체크 가입 7명 활성 4명 — 가입 환자 드물어 우선순위 낮음</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>김완호정형외과</strong>
+            <span class="case-meta">신규 공략처 (비거래)</span></span>
+          <span class="col-amount amt-red">— </span>
+          <span class="col-action">
+            <span class="action-tag tool-content">콘텐츠</span><span class="action-tag tool-symp">제설</span><em>3월 줄기세포 연구소 오픈 SNS 콘텐츠 의뢰 진행 → 인스타 운영 기획 후속</em>.
+            <ul>
+              <li>프롤리아 → 스토보 스위칭 약속 → 재고 확인 후 타이밍 잡기</li>
+              <li>의사회 모임 제품설명회 통한 본드론 우위점 어필</li>
+            </ul>
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>맑은우리피부과</strong>
+            <span class="case-meta">신규 세팅 (압솔라+펙수20mg)</span></span>
+          <span class="col-amount amt-red">—</span>
+          <span class="col-action">
+            <span class="action-tag">신규세팅</span>3월 처방 세팅 완료 → <em>실제 처방 확인 + 브이올렛 본원 연계</em>.
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>성모맑은미소내과</strong>
+            <span class="case-meta">신규 개원 · 이번주 미팅 시도</span></span>
+          <span class="col-amount amt-red">—</span>
+          <span class="col-action">
+            <span class="action-tag tool-content">콘텐츠</span>개원 초 홍보 니즈 — <em>하이닥/포스터 제작으로 첫인상 각인</em>.
+          </span>
+        </div>
+
+        <div class="strat-row">
+          <span class="col-name"><strong>고려/서울제일/이지정신/복복한이비인후</strong>
+            <span class="case-meta">단품 펙수 소량 처방</span></span>
+          <span class="col-amount amt-red">~62만</span>
+          <span class="col-action">
+            <span class="action-tag">방문조정</span>방문 주기 분기 1회 유지 → 다른 P1/P2 시간 배분.
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. 신제품 (바로에젯 · 실리스칸) 진입 트래커 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:var(--purple);"></span>
+      <span class="section-title">신제품 진입 트래커</span>
+      <span class="section-sub">바로에젯 · 실리스칸 · 3월 실적 0 → 2Q 본격 시작</span>
+    </div>
+    <table class="matrix-table">
+      <thead>
+        <tr>
+          <th style="width:170px;">거래처</th>
+          <th style="width:90px;">바로에젯</th>
+          <th style="width:90px;">실리스칸</th>
+          <th>4월 액션</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>삼성바른내과</strong></td>
+          <td><span class="react-tag react-pos">긍정·연구</span></td>
+          <td><span class="react-tag react-mid">고려</span></td>
+          <td>연구 데이터 입력 독려 + <em>3,000만 약속 처방 확인</em></td></tr>
+        <tr><td><strong>서울강민신경과</strong></td>
+          <td><span class="react-tag react-pos">긍정·약속</span></td>
+          <td><span class="react-tag react-mid">고려</span></td>
+          <td>리토바젯 처방 약속 확인 + 박원장께 실리스칸 전달 결과 확인</td></tr>
+        <tr><td><strong>세란내과</strong></td>
+          <td><span class="react-tag react-mid">고려·자문완</span></td>
+          <td><span class="react-tag react-mid">박원장 고려</span></td>
+          <td><em>4/11 심포지엄 — 300만 약속 도출</em></td></tr>
+        <tr><td><strong>연세든든내과</strong></td>
+          <td><span class="react-tag react-mid">고려·세팅</span></td>
+          <td><span class="react-tag react-neg">우루사·리바텍</span></td>
+          <td>약가 부담 멘트 대응 자료 보강 → 300만 처방 확인</td></tr>
+        <tr><td><strong>정내과 2원장</strong></td>
+          <td><span class="react-tag react-pos">긍정</span></td>
+          <td><span class="react-tag react-mid">고려</span></td>
+          <td>200만 + 500만 약속 → 처방 확인 우선</td></tr>
+        <tr><td><strong>서울진내과</strong></td>
+          <td><span class="react-tag react-neg">부정·리바로</span></td>
+          <td><span class="react-tag react-mid">고려</span></td>
+          <td>실리스칸 500만 약속 우선 → 바로에젯 보류</td></tr>
+        <tr><td><strong>류마내과</strong></td>
+          <td><span class="react-tag react-mid">고려·자문완</span></td>
+          <td><span class="react-tag react-neg">미확인</span></td>
+          <td>200만 약속 — 자문 결과 확인 + 실리스칸 재제안</td></tr>
+        <tr><td><strong>박기호내과</strong></td>
+          <td><span class="react-tag react-neg">미확인</span></td>
+          <td><span class="react-tag react-neg">미확인</span></td>
+          <td>4/2 자문 결과 확인 (실리스칸)</td></tr>
+        <tr><td><strong>삼성서울의원</strong></td>
+          <td><span class="react-tag react-pos">긍정</span></td>
+          <td><span class="react-tag react-neg">QD공감만</span></td>
+          <td>노인·당뇨 환자 타깃 처방 시작 → 실적 확인</td></tr>
+        <tr><td><strong>서울박내과</strong></td>
+          <td><span class="react-tag react-pos">긍정·세팅</span></td>
+          <td><span class="react-tag react-neg">부정</span></td>
+          <td>초진 한정 100만 처방 확인</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 8. 노션 활용 도구 큐레이션 -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:var(--teal);"></span>
+      <span class="section-title">활용 중인 영업 시스템 (노션 기반)</span>
+      <span class="section-sub">"기억하는 영업" → "기록·설계하는 영업"</span>
+    </div>
+    <div class="toolkit-card">
+      <div style="font-size:13px; color:var(--text-secondary); line-height:1.6; margin-bottom:8px;">
+        매월 품목별 실적 → Claude 학습 → 거래처 우선순위 도출 → 노션 기록 기반 RP 사전 설계 → 방문 → 처방 약속 → 통계 회수 → 다음달 전략 반영
+      </div>
+      <div class="toolkit-grid">
+        <div class="toolkit-item">
+          <div class="toolkit-name">🧭 RP 설계</div>
+          <div class="toolkit-desc">노션 거래처별 정보·히스토리·할 일 → Claude 학습 → 방문 전 5분 내 사전 설계. 즉흥→설계 영업 전환.</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">🎨 AI 콘텐츠</div>
+          <div class="toolkit-desc">블로그·인스타·네이버플레이스·홈페이지 팝업·원내 홍보물 직접 제작 → 신뢰도·고객단계 동시 상승.</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">📋 국가시책 컨설팅</div>
+          <div class="toolkit-desc">일만사·고당적정성·웰체크 → 병원 수익 시뮬레이션 → 처방 명분 자연 각인. (활성 8처·1,007명)</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">🔬 큐레이션 툴</div>
+          <div class="toolkit-desc">옵티나·위스키·카트BP·모비케어·리브레 → 의료기기 패키지로 신규 개원처 컨설팅 모델 정립.</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">🎓 MKT Tool</div>
+          <div class="toolkit-desc">DTM 50만 (4단계+ 10명 강연) · 자문 30만 (감사 성격) · 증례 30만 · 연구 10~20만/례 · 부스 200만.</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">💬 디테일 멘트 구성</div>
+          <div class="toolkit-desc">바로에젯·실리스칸·펙수클루 임상 기전 → AI 활용 나만의 언어 변환 → 케이스별 멘트.</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">📊 실적 학습</div>
+          <div class="toolkit-desc">매월 품목별 엑셀 → Claude 학습 → 성장률·성장금액·가능 거래처 우선순위 즉시 도출.</div>
+        </div>
+        <div class="toolkit-item">
+          <div class="toolkit-name">🔄 월별 복기</div>
+          <div class="toolkit-desc">매월 성장 전략 → 월말 피드백 (정량/정성·잘한 점·개선점) → 다음달 전략 자동 반영.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. 4월 핵심 KPI -->
+  <section class="section">
+    <div class="section-header">
+      <span class="section-dot" style="background:var(--red);"></span>
+      <span class="section-title">4월 핵심 KPI · 약속을 실적으로</span>
+      <span class="section-sub">노션 1Q 복기 기반 추출</span>
+    </div>
+    <div class="footer-note">
+      <strong>① 펙수클루 회복 (3월 −8.5%) :</strong> 박기호·메디휴제일·서울하·삼성편한·정기수 5처 펙수 0 → <strong>최소 2처 신규 진입</strong>. 류마(62→200), 강서척(56→100) 단계적 용량 업.<br><br>
+      <strong>② 신제품 약속 → 실적 전환 :</strong> 바로에젯 약속 합 약 4,500만 (삼성바른 3,000 + 강민·세란·연세든든·정내과2 등) → <strong>처방 확인 방문 우선</strong>. 실리스칸 1,500만(서울진·정내과2·강민) 처방 시작 확인.<br><br>
+      <strong>③ 웰체크 이행률 4.6% → 30% :</strong> 삼성바른(3,100 vs 0) 비활성 1순위 ⚠️ 전담 간호사 + 상주 가입 구조 제안. 메디휴제일 25.11 마지막 연동 → 4월 리셋. 연세든든 221명 가입/활성 5명 → 활성 50명 약속.<br><br>
+      <strong>④ 신규 4처 공략 :</strong> 성모맑은미소내과 (개원·이번주 목 미팅) · 김완호정형외과 (인스타 + 줄기세포 SNS) · 김정재탑내과 (옵티나 처방 세팅) · 맑은우리피부과 (처방 유지·확대).<br><br>
+      <strong>⑤ 분산 구조 가속 :</strong> 세란 의존도 25.3% → 강민·연세든든·박기호 각 1,000만대 진입 목표. 세란 강서연세약국 통계 거부 이력 감안한 분산 약국 통계 회수 루틴 가동.
+    </div>
+  </section>
+
+</main>
+
+<script>
+const products = [
+  { name: '크레젯정10/5mg',         val: 12899156, color: '#378ADD' },
+  { name: 'WISKY_OPTiNA',          val: 10623455, color: '#BA7517' },
+  { name: '세비카정5/20mg',          val: 9074161,  color: '#7F77DD' },
+  { name: '펙수클루정40mg',          val: 8850973,  color: '#1D9E75' },
+  { name: '크레스토정5mg',           val: 7417020,  color: '#378ADD' },
+  { name: '스토보클로프리필드',       val: 7394393,  color: '#D85A30' },
+  { name: '제미메트서방정50/1000',   val: 7236712,  color: '#7F77DD' },
+  { name: '크레스토정10mg',          val: 6149572,  color: '#378ADD' },
+  { name: '크레젯정10/10mg',         val: 6142862,  color: '#378ADD' },
+  { name: '제미메트서방정50/500',    val: 4152844,  color: '#7F77DD' },
+  { name: '세비카HCT5/20/12.5',     val: 3369511,  color: '#7F77DD' },
+  { name: 'WISKY_분석프로그램',       val: 3000000,  color: '#BA7517' },
+  { name: '올메텍정10mg',            val: 2946719,  color: '#7F77DD' },
+  { name: '프리스타일리브레',         val: 2901818,  color: '#BA7517' },
+  { name: '카트BP',                 val: 2699608,  color: '#BA7517' },
+];
+const rev = [...products].reverse();
+const ctx = document.getElementById('productChart').getContext('2d');
+document.getElementById('productChart').style.height = (rev.length * 40) + 'px';
+document.getElementById('productChart').height = rev.length * 40;
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: rev.map(p => p.name),
+    datasets: [{
+      data: rev.map(p => p.val),
+      backgroundColor: rev.map(p => p.color + 'CC'),
+      borderColor: rev.map(p => p.color),
+      borderWidth: 1.5, borderRadius: 5, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: c => '  ' + Math.round(c.raw / 10000).toLocaleString() + '만원' },
+        backgroundColor: '#1F2937', titleColor: '#F9FAFB', bodyColor: '#D1D5DB',
+        cornerRadius: 8, padding: 10,
+      }
+    },
+    scales: {
+      x: { grid: { color: '#F0F2F8', drawBorder: false }, border: { display: false },
+        ticks: { color: '#9CA3AF', font: { size: 11 }, callback: v => Math.round(v / 10000) + '만' } },
+      y: { grid: { display: false }, border: { display: false },
+        ticks: { color: '#374151', font: { size: 12, weight: '500' }, padding: 8 } }
+    }
+  }
+});
+
+function renderDist(id, items, color) {
+  const el = document.getElementById(id);
+  const max = items[0].val;
+  el.innerHTML = items.map(item => {
+    const pct = Math.round(item.val / max * 100);
+    return `<div class="dist-row">
+      <span class="dist-name">${item.name}</span>
+      <div class="dist-bar-wrap"><div class="dist-bar" style="width:${pct}%;background:${color};"></div></div>
+      <span class="dist-amt">${item.amt}</span>
+    </div>`;
+  }).join('');
+}
+
+renderDist('pexu-dist', [
+  { name: '강민신경과',        val: 303, amt: '303만' },
+  { name: '세란내과',          val: 174, amt: '174만' },
+  { name: '연세든든내과',       val: 126, amt: '126만' },
+  { name: '열린성모이비',       val: 105, amt: '105만' },
+  { name: '삼성바른내과',       val: 81,  amt: '81만'  },
+], '#1D9E75');
+
+renderDist('stobo-dist', [
+  { name: '연세든든내과',   val: 241, amt: '241만' },
+  { name: '세란내과',      val: 139, amt: '139만' },
+  { name: '푸른정형외과',   val: 139, amt: '139만' },
+  { name: '박기호내과',    val: 87,  amt: '87만'  },
+  { name: '삼성편한내과',   val: 70,  amt: '70만'  },
+], '#D85A30');
+
+renderDist('chol-dist', [
+  { name: '세란내과',      val: 1938, amt: '1,938만' },
+  { name: '박기호내과',    val: 374,  amt: '374만'  },
+  { name: '연세든든내과',   val: 197,  amt: '197만'  },
+  { name: '서울진내과',    val: 181,  amt: '181만'  },
+  { name: '서울하내과',    val: 149,  amt: '149만'  },
+], '#378ADD');
+
+renderDist('in-dist', [
+  { name: '김정재탑내과',   val: 1632, amt: '1,632만' },
+  { name: '연세든든내과',   val: 546,  amt: '546만'  },
+  { name: '세란내과',      val: 156,  amt: '156만'  },
+  { name: '푸른정형외과',   val: 139,  amt: '139만'  },
+  { name: '강서척정형외과', val: 88,   amt: '88만'   },
+], '#0891B2');
+
+renderDist('device-dist', [
+  { name: '김정재탑내과',   val: 1670, amt: '1,670만' },
+  { name: '연세든든내과',   val: 305,  amt: '305만'  },
+  { name: '강민신경과',    val: 153,  amt: '153만'  },
+  { name: '홍사민안과',    val: 92,   amt: '92만'   },
+  { name: '서울안심내과',   val: 56,   amt: '56만'   },
+], '#BA7517');
+
+renderDist('well-dist', [
+  { name: '연세든든 (가입)',  val: 221, amt: '221명' },
+  { name: '연세정성 (가입)',  val: 169, amt: '169명' },
+  { name: '서울진 (활성)',   val: 103, amt: '103명' },
+  { name: '삼성바른 (가입)',  val: 103, amt: '103명' },
+  { name: '삼성서울 (활성)',  val: 102, amt: '102명' },
+], '#1E40AF');
+</script>
+</body>
+</html>
